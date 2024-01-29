@@ -1,0 +1,84 @@
+<html>
+<head>
+<script>
+       let broadcast;
+       if(broadcast == undefined){
+        broadcast = new BroadcastChannel("message_broadcast")
+       }
+       
+       const durationInSec = 5;
+       let idleTimeout;
+       const resetIdleTimeout = (runPostMessage = true) => {
+
+            if (runPostMessage) {
+              broadcast.postMessage({reset:durationInSec})
+            }
+            let idleDuration = durationInSec
+            if (idleTimeout) {
+                clearInterval(idleTimeout)
+            }
+            idleTimeout = setInterval(() => {
+                let min = Math.floor(idleDuration / 60)
+                let sec = idleDuration % 60
+                document.getElementById('result').innerHTML = `${min < 10 ? '0': ''}${min} : ${sec < 10 ? '0': ''}${sec}`
+                if (--idleDuration < 0 ) {
+                    console.log("session out")
+                    broadcast.close()
+                    if (container) {
+                      ['click','mousemove'].forEach( e => {
+                        container.removeEventListener( e , resetIdleTimeout )
+                      })
+                    }
+                    clearInterval(idleTimeout)
+                }
+            }, 1000)
+        }
+        resetIdleTimeout();
+
+        window.addEventListener("DOMContentLoaded",(event)=>{
+
+          let container = document.getElementById("container")
+            if (container) {
+              ['click'].forEach( e => {
+                container.addEventListener( e , resetIdleTimeout )
+                })
+              }
+
+          const btn = document.getElementById("lgbtn")
+          btn.addEventListener('click', e => {
+            doLogout();
+            broadcast.postMessage({cmd: 'logout', user: 'abc'});
+          });
+
+          broadcast.onmessage = function(e) {
+            if (e.data.cmd === 'logout') {
+            doLogout();
+            }
+          }; 
+        })
+    
+        broadcast.addEventListener("message", (event) => {
+            console.log('listning post message', event,"data--->",event.data,"event origin-->",event.origin) ;      
+            // if(event.srcElement.name === event.target.name){
+            //   resetIdleTimeout(false)
+            // }
+            resetIdleTimeout(false)
+        })
+
+        function doLogout() {     
+              //     
+              console.log("---logout function called---")
+              document.getElementById("result").style.display ="none"
+          }
+
+</script>
+</head>
+<body>
+  <div>broadcast channel communication</div>
+  <h1 id="result"></h1>
+  <button id="lgbtn" >
+    logout
+  </button>
+  <div id="container" class ="cont" style="height: 200px;background-color: rgb(240, 239, 239);margin-top: 20px;">container div</div>
+</body>
+</html>
